@@ -39,3 +39,17 @@ const (
 	FUNCTION = "FUNCTION"
 	LET      = "LET"
 )
+
+var keywords = map[string]TokenType{
+	"fn":  FUNCTION,
+	"let": LET,
+}
+
+func LookupIdent(ident string) TokenType {
+	// 予約語かどうか判定
+	if tok, ok := keywords[ident]; ok {
+		return tok
+	}
+	// それ以外は変数として定義
+	return IDENT
+}
