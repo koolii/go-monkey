@@ -34,6 +34,7 @@ func isLetter(ch byte) bool {
 }
 
 func isDigit(ch byte) bool {
+	// 浮動点小数型は完全にサポートしていなかった
 	return '0' <= ch && ch <= '9'
 }
 
