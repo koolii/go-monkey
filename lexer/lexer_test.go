@@ -1,17 +1,34 @@
 package lexer
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/koolii/go-monkey/token"
 )
 
+type TestCase struct {
+	expectedType    token.TokenType
+	expectedLiteral string
+}
+
+func spec(input string, tests []TestCase) string {
+	l := New(input)
+	for i, tt := range tests {
+		tok := l.NextToken()
+		if tok.Type != tt.expectedType {
+			return fmt.Sprintf("tests[%d] - tokentype wrong. expected=%q, got=%q", i, tt.expectedType, tok.Type)
+		}
+		if tok.Literal != tt.expectedLiteral {
+			return fmt.Sprintf("tests[%d] - literal wrong. expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+	return ""
+}
+
 func TestNextToken(t *testing.T) {
 	input := `=+(){},;`
-	tests := []struct {
-		expectedType    token.TokenType
-		expectedLiteral string
-	}{
+	tests := []TestCase{
 		{token.ASSIGN, "="},
 		{token.PLUS, "+"},
 		{token.LPAREN, "("},
@@ -23,18 +40,9 @@ func TestNextToken(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
-
-	for i, tt := range tests {
-		tok := l.NextToken()
-
-		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong. expected=%q, got=%q", i, tt.expectedType, tok.Type)
-		}
-
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
-		}
+	errorState := spec(input, tests)
+	if errorState != "" {
+		t.Fatalf(errorState)
 	}
 }
 
@@ -45,10 +53,7 @@ let add = fn(x, y) { x + y;
 let result = add(five, ten);
 `
 
-	tests := []struct {
-		expectedType    token.TokenType
-		expectedLiteral string
-	}{
+	tests := []TestCase{
 		{token.LET, "let"},
 		{token.IDENT, "five"},
 		{token.ASSIGN, "="},
@@ -88,15 +93,8 @@ let result = add(five, ten);
 		{token.EOF, ""},
 	}
 
-	l := New(input)
-
-	for i, tt := range tests {
-		tok := l.NextToken()
-		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong. expected=%q, got=%q", i, tt.expectedType, tok.Type)
-		}
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
-		}
+	errorState := spec(input, tests)
+	if errorState != "" {
+		t.Fatalf(errorState)
 	}
 }
