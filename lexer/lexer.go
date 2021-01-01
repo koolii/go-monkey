@@ -1,8 +1,6 @@
 package lexer
 
 import (
-	"fmt"
-
 	"github.com/koolii/go-monkey/token"
 )
 
@@ -48,10 +46,10 @@ func (l *Lexer) readChar() {
 	if l.readPosition >= len(l.input) {
 		// ASCIIで言うところの "NUL"
 		l.ch = 0
-		fmt.Printf("readChar(): EOF\n")
+		// fmt.Printf("readChar(): EOF\n")
 	} else {
 		l.ch = l.input[l.readPosition]
-		fmt.Printf("readChar(): %c\n", l.ch)
+		// fmt.Printf("readChar(): %c\n", l.ch)
 	}
 	// positionの更新処理
 	l.position = l.readPosition
@@ -117,11 +115,11 @@ func (l *Lexer) NextToken() token.Token {
 		tok.Literal = ""
 		tok.Type = token.EOF
 	default:
-		fmt.Println("This is default case")
+		// fmt.Println("This is default case")
 		if isLetter(l.ch) {
 			tok.Literal = l.readIdentifier()
 			tok.Type = token.LookupIdent(tok.Literal)
-			fmt.Printf("This is identifier: %s\n", tok.Literal)
+			// fmt.Printf("This is identifier: %s\n", tok.Literal)
 			// readIdentifier()でreadChar()を実行しているため、余分にreadChar()を実行させない
 			return tok
 		} else if isDigit(l.ch) {
