@@ -17,6 +17,10 @@ type Parser struct {
 	// curTokenだけで判断が出来ない時にpeekTokenを利用する
 	curToken  token.Token
 	peekToken token.Token
+
+	// curToken.Typeに関連付けられた構文解析関数がマップにあるかどうかがすぐにチェックできる
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -132,4 +136,22 @@ func (p *Parser) curTokenIs(tokenType token.TokenType) bool {
 }
 func (p *Parser) peekTokenIs(tokenType token.TokenType) bool {
 	return p.peekToken.Type == tokenType
+}
+
+// Expression section
+
+// Prattでは、トークンタイプに最大2つの構文解析関数を割り当てられる
+// 前置・中置
+type (
+	prefixParseFn func() ast.Expression
+	// 構文解析中の中置演算子の「左側」
+	infixParseFn func(ast.Expression) ast.Expression
+)
+
+// Parse内のマップにエントリを追加するヘルパーメソッド
+func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[tokenType] = fn
+}
+func (p *Parser) registerInfixfix(tokenType token.TokenType, fn infixParseFn) {
+	p.infixParseFns[tokenType] = fn
 }
