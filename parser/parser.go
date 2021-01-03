@@ -9,7 +9,8 @@ import (
 )
 
 type Parser struct {
-	l *lexer.Lexer
+	l      *lexer.Lexer
+	errors []string
 
 	// Lexerで言うところの position/readPositionのような動き
 	// Lexerは次に読み込む無加工の1文字だったが、今回は文字ではなくtokenになる
@@ -19,7 +20,7 @@ type Parser struct {
 }
 
 func New(l *lexer.Lexer) *Parser {
-	p := &Parser{l: l}
+	p := &Parser{l: l, errors: []string{}}
 	fmt.Printf("Parser: %+v", p)
 
 	// curToken/peekTokenを読み込む
@@ -27,6 +28,15 @@ func New(l *lexer.Lexer) *Parser {
 	p.nextToken()
 
 	return p
+}
+
+func (p *Parser) Errors() []string {
+	return p.errors
+}
+
+func (p *Parser) peekError(t token.TokenType) {
+	msg := fmt.Sprintf("expected next token to be %s, got %s instead", t, p.peekToken.Type)
+	p.errors = append(p.errors, msg)
 }
 
 // 次のtokenに移動する
@@ -91,11 +101,12 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 
 func (p *Parser) expectPeek(tokenType token.TokenType) bool {
 	if p.peekTokenIs(tokenType) {
-		// if p.peekToken.Type == tokenType {
 		// トークンを一つ進める
+		// peekTokenの型をチェックし、その型が正しい場合に限りnextToken()で次のトークンを読み出す
 		p.nextToken()
 		return true
 	}
+	p.peekError(tokenType)
 	return false
 }
 
