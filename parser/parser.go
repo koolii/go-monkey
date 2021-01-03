@@ -71,6 +71,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		// これを *ast.Statementにするとエラーとなる
 		// よく分かっていないが、 Statement < LetStatementの構成だが、だが、ポインタを利用すると継承？がうまく出来ない？
 		return p.parseLetStatement()
+	case token.RETURN:
+		return p.parseReturnStatement()
 	default:
 		return nil
 	}
@@ -89,6 +91,21 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	if !p.expectPeek(token.ASSIGN) {
 		return nil
 	}
+
+	// 一旦セミコロンまでスキップ
+	for !p.curTokenIs(token.SEMICOLON) {
+		fmt.Printf("token is not semicolon: %+v\n", p)
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+	stmt := &ast.ReturnStatement{Token: p.curToken}
+
+	// returnトークンの次のexpressionのセクションまで移動させる
+	p.nextToken()
 
 	// 一旦セミコロンまでスキップ
 	for !p.curTokenIs(token.SEMICOLON) {
