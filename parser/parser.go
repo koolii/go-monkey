@@ -8,6 +8,18 @@ import (
 	"github.com/koolii/go-monkey/token"
 )
 
+// 優先順位の順番の管理もしている
+const (
+	_ int = iota
+	LOWEST
+	EQUALS      // ==
+	LESSGREATER // > or <
+	SUM         // +
+	PRODUCT     // *
+	PREFIX      // -X or !X
+	CALL        // myFunc(x)
+)
+
 type Parser struct {
 	l      *lexer.Lexer
 	errors []string
@@ -19,6 +31,10 @@ type Parser struct {
 	peekToken token.Token
 
 	// curToken.Typeに関連付けられた構文解析関数がマップにあるかどうかがすぐにチェックできる
+	// 規約
+	// - 構文解析関数に関連付けられたトークンが curToken にセットされている状態で動作を開始する
+	// - この関数の処理対象である式の一番最後のトークンがcurTokenにセットされた状態になるまで進んで終了する
+	// - トークンを進めすぎては行けない
 	prefixParseFns map[token.TokenType]prefixParseFn
 	infixParseFns  map[token.TokenType]infixParseFn
 }
@@ -30,6 +46,13 @@ func New(l *lexer.Lexer) *Parser {
 	// curToken/peekTokenを読み込む
 	p.nextToken()
 	p.nextToken()
+
+	// mapの初期化
+	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
+
+	// 構文解析関数を登録
+	// expressionをParseする際にここに登録してある関数を実行し、Expressionを取得
+	p.registerPrefix(token.IDENT, p.parseIdentifier)
 
 	return p
 }
@@ -78,7 +101,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		return nil
+		return p.parseExpressionStatement()
 	}
 }
 
@@ -154,4 +177,29 @@ func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
 }
 func (p *Parser) registerInfixfix(tokenType token.TokenType, fn infixParseFn) {
 	p.infixParseFns[tokenType] = fn
+}
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	stmt := &ast.ExpressionStatement{Token: p.curToken}
+	stmt.Expression = p.parseExpression(LOWEST)
+	// もしもセミコロンがなかったとしても問題はない
+	// 構文解析器にエラーを追加しない
+	// なぜなら式分のセミコロンを省略できるようにするため
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
+}
+
+// p.curToken.Typeの前置に関連付けられた構文解析関数があるかを確認している
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	prefix := p.prefixParseFns[p.curToken.Type]
+	if prefix == nil {
+		return nil
+	}
+	leftExp := prefix()
+	fmt.Printf("parseExpression(leftExp): %+v\n", leftExp)
+	return leftExp
+}
+func (p *Parser) parseIdentifier() ast.Expression {
+	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 }
