@@ -55,6 +55,8 @@ func New(l *lexer.Lexer) *Parser {
 	// expressionをParseする際にここに登録してある関数を実行し、Expressionを取得
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 
 	return p
 }
@@ -177,7 +179,7 @@ type (
 func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
 	p.prefixParseFns[tokenType] = fn
 }
-func (p *Parser) registerInfixfix(tokenType token.TokenType, fn infixParseFn) {
+func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
 	p.infixParseFns[tokenType] = fn
 }
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
@@ -193,19 +195,30 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 }
 
 // p.curToken.Typeの前置に関連付けられた構文解析関数があるかを確認している
+// TODO ここの中身分かってない
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFns[p.curToken.Type]
+
 	if prefix == nil {
+		// 該当する prefxの演算子が存在しなかった場合(プログラムが解釈出来ないと判断される)
+		p.noPrefixParseFnError(p.curToken.Type)
 		return nil
 	}
 	leftExp := prefix()
 	fmt.Printf("parseExpression(leftExp): %+v\n", leftExp)
 	return leftExp
 }
+
+func (p *Parser) noPrefixParseFnError(t token.TokenType) {
+	msg := fmt.Sprintf("no prefix parse function for %s found", t)
+	p.errors = append(p.errors, msg)
+}
+
 func (p *Parser) parseIdentifier() ast.Expression {
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 }
 
+// 2.6.7
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	lit := &ast.IntegerLiteral{Token: p.curToken}
 
@@ -219,4 +232,16 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	lit.Value = value
 
 	return lit
+}
+
+// 2.6.8
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	expression := &ast.PrefixExpression{Token: p.curToken, Operator: p.curToken.Literal}
+
+	// getting Right expression
+	p.nextToken()
+
+	expression.Right = p.parseExpression(PREFIX)
+
+	return expression
 }
